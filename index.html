@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aggregatore News</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .search-box, .filter-select {
+            padding: 12px 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus, .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .refresh-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .news-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .news-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .news-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+        }
+
+        .news-content {
+            padding: 20px;
+        }
+
+        .news-category {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .news-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            line-height: 1.4;
+            color: #333;
+        }
+
+        .news-summary {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .news-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #999;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 15px;
+        }
+
+        .news-source {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .news-date {
+            font-style: italic;
+        }
+
+        .read-more {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .read-more:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .news-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📰 Aggregatore News</h1>
+            <p class="subtitle">Le ultime notizie da fonti affidabili, sempre aggiornate</p>
+        </header>
+
+        <div class="controls">
+            <input type="text" class="search-box" placeholder="🔍 Cerca notizie..." id="searchInput">
+            
+            <select class="filter-select" id="categoryFilter">
+                <option value="">Tutte le categorie</option>
+                <option value="general">Generali</option>
+                <option value="business">Business</option>
+                <option value="technology">Tecnologia</option>
+                <option value="science">Scienza</option>
+                <option value="health">Salute</option>
+                <option value="sports">Sport</option>
+                <option value="entertainment">Intrattenimento</option>
+            </select>
+
+            <select class="filter-select" id="sourceFilter">
+                <option value="">Tutte le fonti</option>
+                <option value="bbc-news">BBC News</option>
+                <option value="cnn">CNN</option>
+                <option value="reuters">Reuters</option>
+                <option value="associated-press">Associated Press</option>
+                <option value="the-guardian">The Guardian</option>
+            </select>
+
+            <button class="refresh-btn" onclick="loadNews()">🔄 Aggiorna</button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <p>⏳ Caricamento notizie in corso...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <p>❌ Errore nel caricamento delle notizie. Riprova più tardi.</p>
+        </div>
+
+        <div class="news-grid" id="newsContainer">
+            <!-- Le notizie verranno inserite qui dinamicamente -->
+        </div>
+    </div>
+
+    <script>
+        // Configurazione API
+        const NEWS_API_KEY = 'demo'; // Useremo una demo key per ora
+        const NEWS_API_URL = 'https://newsapi.org/v2';
+
+        // Variabili globali
+        let allNews = [];
+        let filteredNews = [];
+
+        // Dati demo per quando l'API non è disponibile
+        const demoNews = [
+            {
+                title: "Intelligenza Artificiale: Nuovi Sviluppi nel 2025",
+                description: "Le ultime innovazioni nell'intelligenza artificiale stanno trasformando il modo in cui lavoriamo e viviamo. Scopri cosa ci aspetta nel futuro della tecnologia.",
+                url: "#",
+                urlToImage: "https://via.placeholder.com/400x200?text=AI+News",
+                publishedAt: "2025-08-17T10:00:00Z",
+                source: { name: "Tech News" },
+                category: "technology"
+            },
+            {
+                title: "Economia Globale: Tendenze del Mercato",
+                description: "Analisi approfondita delle tendenze economiche globali e del loro impatto sui mercati internazionali nel 2025.",
+                url: "#",
+                urlToImage: "https://via.placeholder.com/400x200?text=Economy",
+                publishedAt: "2025-08-17T09:30:00Z",
+                source: { name: "Business Today" },
+                category: "business"
+            },
+            {
+                title: "Scoperta Scientifica Rivoluzionaria",
+                description: "Ricercatori internazionali hanno fatto una scoperta che potrebbe cambiare la nostra comprensione dell'universo.",
+                url: "#",
+                urlToImage: "https://via.placeholder.com/400x200?text=Science",
+                publishedAt: "2025-08-17T08:45:00Z",
+                source: { name: "Science Daily" },
+                category: "science"
+            },
+            {
+                title: "Sport: Risultati dei Campionati",
+                description: "Aggiornamenti sui principali campionati sportivi internazionali e risultati delle competizioni più importanti.",
+                url: "#",
+                urlToImage: "https://via.placeholder.com/400x200?text=Sports",
+                publishedAt: "2025-08-17T07:15:00Z",
+                source: { name: "Sports Network" },
+                category: "sports"
+            },
+            {
+                title: "Salute e Benessere: Nuove Ricerche",
+                description: "Le ultime ricerche mediche rivelano nuovi approcci per migliorare la salute e il benessere generale.",
+                url: "#",
+                urlToImage: "https://via.placeholder.com/400x200?text=Health",
+                publishedAt: "2025-08-17T06:30:00Z",
+                source: { name: "Health Magazine" },
+                category: "health"
+            },
+            {
+                title: "Intrattenimento: Novità dal Cinema",
+                description: "Le ultime novità dal mondo del cinema e dell'intrattenimento, con anteprime esclusive sui film più attesi.",
+                url: "#",
+                urlToImage: "https://via.placeholder.com/400x200?text=Entertainment",
+                publishedAt: "2025-08-17T05:00:00Z",
+                source: { name: "Entertainment Weekly" },
+                category: "entertainment"
+            }
+        ];
+
+        // Funzione per caricare le notizie
+        async function loadNews(category = '', source = '', query = '') {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const container = document.getElementById('newsContainer');
+
+            // Mostra loading
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            container.innerHTML = '';
+
+            try {
+                // Prova a caricare da NewsAPI (probabilmente fallirà per limiti API)
+                let url = `${NEWS_API_URL}/top-headlines?country=it&apiKey=${NEWS_API_KEY}`;
+                
+                if (category) url += `&category=${category}`;
+                if (source) url += `&sources=${source}`;
+                if (query) url += `&q=${encodeURIComponent(query)}`;
+
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('API non disponibile');
+                }
+
+                const data = await response.json();
+                allNews = data.articles || [];
+                
+                // Se non ci sono notizie dall'API, usa i dati demo
+                if (allNews.length === 0) {
+                    throw new Error('Nessuna notizia dall\'API');
+                }
+
+            } catch (err) {
+                console.log('Usando dati demo:', err.message);
+                // Usa i dati demo
+                allNews = [...demoNews];
+                
+                // Applica filtri ai dati demo
+                if (category) {
+                    allNews = allNews.filter(article => article.category === category);
+                }
+                if (query) {
+                    const searchTerm = query.toLowerCase();
+                    allNews = allNews.filter(article => 
+                        article.title.toLowerCase().includes(searchTerm) ||
+                        article.description.toLowerCase().includes(searchTerm)
+                    );
+                }
+            }
+
+            // Nasconde loading
+            loading.style.display = 'none';
+
+            if (allNews.length === 0) {
+                error.style.display = 'block';
+                return;
+            }
+
+            // Mostra le notizie
+            displayNews(allNews);
+        }
+
+        // Funzione per mostrare le notizie
+        function displayNews(articles) {
+            const container = document.getElementById('newsContainer');
+            container.innerHTML = '';
+
+            articles.forEach((article, index) => {
+                if (article.title === "[Removed]") return; // Filtra articoli rimossi
+
+                const card = document.createElement('div');
+                card.className = 'news-card';
+                card.style.animationDelay = `${index * 0.1}s`;
+
+                const imageUrl = article.urlToImage || `https://via.placeholder.com/400x200?text=${encodeURIComponent(article.source.name)}`;
+                const category = article.category || 'general';
+                const publishedDate = new Date(article.publishedAt).toLocaleDateString('it-IT');
+
+                card.innerHTML = `
+                    ${imageUrl ? `<img src="${imageUrl}" alt="${article.title}" class="news-image" onerror="this.src='https://via.placeholder.com/400x200?text=Notizia'">` : ''}
+                    <div class="news-content">
+                        <span class="news-category">${getCategoryName(category)}</span>
+                        <h3 class="news-title">${article.title}</h3>
+                        <p class="news-summary">${article.description || 'Nessuna descrizione disponibile.'}</p>
+                        <div class="news-meta">
+                            <span class="news-source">${article.source.name}</span>
+                            <span class="news-date">${publishedDate}</span>
+                        </div>
+                        <a href="${article.url}" target="_blank" class="read-more">Leggi tutto →</a>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Funzione per ottenere il nome della categoria in italiano
+        function getCategoryName(category) {
+            const categories = {
+                'general': 'Generali',
+                'business': 'Business',
+                'technology': 'Tecnologia',
+                'science': 'Scienza',
+                'health': 'Salute',
+                'sports': 'Sport',
+                'entertainment': 'Intrattenimento'
+            };
+            return categories[category] || 'Generali';
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Carica le notizie all'avvio
+            loadNews();
+
+            // Ricerca
+            const searchInput = document.getElementById('searchInput');
+            let searchTimeout;
+            
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    const query = this.value.trim();
+                    const category = document.getElementById('categoryFilter').value;
+                    const source = document.getElementById('sourceFilter').value;
+                    loadNews(category, source, query);
+                }, 500);
+            });
+
+            // Filtro categoria
+            document.getElementById('categoryFilter').addEventListener('change', function() {
+                const category = this.value;
+                const source = document.getElementById('sourceFilter').value;
+                const query = document.getElementById('searchInput').value.trim();
+                loadNews(category, source, query);
+            });
+
+            // Filtro fonte
+            document.getElementById('sourceFilter').addEventListener('change', function() {
+                const source = this.value;
+                const category = document.getElementById('categoryFilter').value;
+                const query = document.getElementById('searchInput').value.trim();
+                loadNews(category, source, query);
+            });
+
+            // Aggiornamento automatico ogni 5 minuti
+            setInterval(() => {
+                const category = document.getElementById('categoryFilter').value;
+                const source = document.getElementById('sourceFilter').value;
+                const query = document.getElementById('searchInput').value.trim();
+                loadNews(category, source, query);
+            }, 300000); // 5 minuti
+        });
+
+        // Gestione errori immagini
+        document.addEventListener('error', function(e) {
+            if (e.target.tagName === 'IMG') {
+                e.target.src = 'https://via.placeholder.com/400x200?text=Immagine+non+disponibile';
+            }
+        }, true);
+    </script>
+</body>
+</html>
